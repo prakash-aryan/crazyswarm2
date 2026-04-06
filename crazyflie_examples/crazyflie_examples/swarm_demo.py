@@ -37,10 +37,10 @@ def main():
             cf.goTo(np.array([x, y, Z]), 0, 3.0)
         timeHelper.sleep(4.0)
 
-    # Converge back to center at staggered heights
-    for i, cf in enumerate(allcfs.crazyflies):
-        h = Z + 0.2 * i
-        cf.goTo(np.array([center[0], center[1], h]), 0, 3.0)
+    # Return to original positions before landing
+    for cf in allcfs.crazyflies:
+        pos = np.array(cf.initialPosition) + np.array([0, 0, Z])
+        cf.goTo(pos, 0, 3.0)
     timeHelper.sleep(4.0)
 
     # Land all

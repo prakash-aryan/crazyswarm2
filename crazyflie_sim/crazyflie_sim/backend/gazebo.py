@@ -51,9 +51,11 @@ class Backend:
         # Track which drones have received odom (confirming Gazebo is ready)
         self._odom_received = {name: False for name in names}
 
-        # Position P-gains for converting desired state to velocity
-        self.kp_pos = np.array([1.5, 1.5, 1.5])
-        self.kp_vel = np.array([0.5, 0.5, 0.5])
+        # PD gains for converting desired state to velocity
+        self.kp_pos = np.array([0.8, 0.8, 1.0])   # Position P gain (softer XY, slightly higher Z)
+        self.kd_vel = np.array([0.5, 0.5, 0.5])   # Velocity damping (D term via velocity error)
+        self.kff_vel = np.array([0.3, 0.3, 0.3])  # Feedforward on desired velocity
+        self.max_vel = 1.0                          # Max velocity clamp (m/s)
 
         # Periodically enable all velocity controllers (ensures late-starting ones work)
         self._enable_timer = node.create_timer(0.5, self._enable_all)
@@ -74,9 +76,17 @@ class Backend:
 
             # Only send commands once Gazebo confirms the drone is ready (odom received)
             if self._odom_received[name]:
-                # PD controller: position error -> velocity command
+                # PD controller: position error + velocity damping -> velocity command
                 pos_err = desired.pos - current.pos
-                vel_cmd = self.kp_pos * pos_err + self.kp_vel * desired.vel
+                vel_err = desired.vel - current.vel
+                vel_cmd = (self.kp_pos * pos_err
+                           + self.kd_vel * vel_err
+                           + self.kff_vel * desired.vel)
+
+                # Clamp velocity to prevent flips from large position errors
+                speed = np.linalg.norm(vel_cmd)
+                if speed > self.max_vel:
+                    vel_cmd = vel_cmd * (self.max_vel / speed)
 
                 msg = Twist()
                 msg.linear.x = float(vel_cmd[0])

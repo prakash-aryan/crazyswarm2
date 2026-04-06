@@ -181,7 +181,9 @@ class CrazyflieSIL:
             traj.t_begin = self.time_func()
             traj.timescale = timescale
             startfrom = self.cmdHl_pos
-            firm.plan_start_trajectory(self.planner, traj, reverse, relative, startfrom)
+            firm.plan_start_trajectory(
+                self.planner, traj, reverse, relative, relative,
+                startfrom, self.cmdHl_yaw)
 
     # def notifySetpointsStop(self, remainValidMillisecs=100):
     #     # No-op - the real Crazyflie prioritizes streaming setpoints over
